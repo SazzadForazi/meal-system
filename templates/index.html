@@ -27,7 +27,10 @@
           <div class="subtle">Track meals, bazar expenses, and deposits in one place.</div>
         </div>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="{{ url_for('manager') }}">Manager</a>
+          <a class="btn btn--ghost" id="managerLink" href="{{ url_for('login') }}">Manager Login</a>
+          <form id="logoutForm" method="post" action="{{ url_for('logout') }}" hidden>
+            <button class="btn btn--danger" type="submit">Logout</button>
+          </form>
           <div class="pill" id="dbStatus" aria-live="polite">Connecting…</div>
         </div>
       </div>
@@ -51,6 +54,12 @@
           <div class="card__label">Meal Rate</div>
           <div class="card__value" id="mealRate">৳0</div>
           <div class="card__hint">Total expenses ÷ total meals</div>
+        </article>
+
+        <article class="card card--stat">
+          <div class="card__label">Total Deposits</div>
+          <div class="card__value" id="totalDeposits">৳0</div>
+          <div class="card__hint">Sum of all deposits</div>
         </article>
       </section>
 
@@ -94,23 +103,31 @@
           <section class="card">
             <div class="card__head">
               <h2 class="h2">Add Meal</h2>
-              <div class="subtle">Supports decimals like 0.5 or 2.5</div>
+              <div class="subtle">Spreadsheet-style entry (supports decimals like 0.5 or 2.5)</div>
             </div>
 
             <form id="mealForm" class="form">
-              <label class="field">
-                <span>Member</span>
-                <select id="mealMember" required></select>
-              </label>
-              <label class="field">
-                <span>Date</span>
-                <input id="mealDate" type="date" required />
-              </label>
-              <label class="field">
-                <span>Meal Count</span>
-                <input id="mealCount" type="number" step="0.5" min="0" placeholder="e.g., 2.5" required />
-              </label>
-              <button class="btn" type="submit">Add Meal</button>
+              <div class="sheet" role="region" aria-label="Meal entry sheet" tabindex="0">
+                <table class="sheetTable" aria-label="Meal entry table">
+                  <thead>
+                    <tr>
+                      <th class="num" style="width: 60px">#</th>
+                      <th>Member</th>
+                      <th style="width: 160px">Date</th>
+                      <th class="num" style="width: 160px">Meal</th>
+                      <th class="num" style="width: 140px">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mealSheetBody"></tbody>
+                </table>
+              </div>
+              <div class="subtle">
+                Tip: “Add Row” creates one row per member for the same date. You can paste multiple lines into the Meal cell. For full rows, paste tab-separated: <span class="mono">Member[TAB]YYYY-MM-DD[TAB]Meal</span>.
+              </div>
+              <div class="sheetActions">
+                <button class="btn btn--ghost" id="mealAddRowBtn" type="button">Add Row</button>
+                <button class="btn" type="submit">Submit All</button>
+              </div>
             </form>
           </section>
 
@@ -164,6 +181,65 @@
             </form>
           </section>
         </aside>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <h2 class="h2">Recent Activity</h2>
+          <div class="subtle">Visible to everyone. Managers can edit/delete inline.</div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Recent activity">
+          <button class="tab is-on" id="tabMeals" type="button" role="tab" aria-selected="true">Meals</button>
+          <button class="tab" id="tabBazar" type="button" role="tab" aria-selected="false">Expenses</button>
+          <button class="tab" id="tabDeposits" type="button" role="tab" aria-selected="false">Deposits</button>
+        </div>
+
+        <div class="tableWrap" id="panelMeals" role="tabpanel" aria-labelledby="tabMeals">
+          <table class="table table--wide">
+            <thead>
+              <tr>
+                <th style="width: 90px">ID</th>
+                <th style="width: 160px">Date</th>
+                <th>Member</th>
+                <th class="num" style="width: 140px">Meal</th>
+                <th class="num" style="width: 220px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recentMealsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="tableWrap" id="panelBazar" role="tabpanel" aria-labelledby="tabBazar" hidden>
+          <table class="table table--wide">
+            <thead>
+              <tr>
+                <th style="width: 90px">ID</th>
+                <th style="width: 160px">Date</th>
+                <th>Member</th>
+                <th class="num" style="width: 160px">Amount</th>
+                <th>Description</th>
+                <th class="num" style="width: 220px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recentBazarBody"></tbody>
+          </table>
+        </div>
+
+        <div class="tableWrap" id="panelDeposits" role="tabpanel" aria-labelledby="tabDeposits" hidden>
+          <table class="table table--wide">
+            <thead>
+              <tr>
+                <th style="width: 90px">ID</th>
+                <th style="width: 160px">Date</th>
+                <th>Member</th>
+                <th class="num" style="width: 160px">Amount</th>
+                <th class="num" style="width: 220px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recentDepositsBody"></tbody>
+          </table>
+        </div>
       </section>
     </main>
 

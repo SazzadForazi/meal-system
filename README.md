@@ -57,6 +57,11 @@ Open:
 - `http://127.0.0.1:5000/login` (manager login)
 - `http://127.0.0.1:5000/manager` (manager portal)
 
+## Roles / Access
+
+- Logged out users: can view dashboard, member summaries, and recent activity (read-only).
+- Manager (logged in): can add/edit/delete members, meals, expenses, deposits from the manager portal and also edit/delete recent activity directly on the home dashboard.
+
 ## Project Structure
 
 ```text

@@ -290,7 +290,6 @@ def create_app() -> Flask:
         return jsonify({"ok": True})
 
     @app.get("/api/meals")
-    @login_required
     def api_list_meals():
         limit = parse_int_query("limit", 200, 1, 1000)
         offset = parse_int_query("offset", 0, 0, 1_000_000)
@@ -379,7 +378,6 @@ def create_app() -> Flask:
         return jsonify({"ok": True})
 
     @app.get("/api/bazar")
-    @login_required
     def api_list_bazar():
         limit = parse_int_query("limit", 200, 1, 1000)
         offset = parse_int_query("offset", 0, 0, 1_000_000)
@@ -471,7 +469,6 @@ def create_app() -> Flask:
         return jsonify({"ok": True})
 
     @app.get("/api/deposits")
-    @login_required
     def api_list_deposits():
         limit = parse_int_query("limit", 200, 1, 1000)
         offset = parse_int_query("offset", 0, 0, 1_000_000)
