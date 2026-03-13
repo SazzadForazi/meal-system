@@ -83,7 +83,7 @@ function renderMemberRows(rows) {
     const td = document.createElement("td");
     td.colSpan = 5;
     td.className = "subtle";
-    td.textContent = "No members found. Seed data by running `python init_db.py`.";
+    td.textContent = "No members found. Seed data by running `python3 init_db.py`.";
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -133,6 +133,15 @@ function renderMemberRows(rows) {
   }
 }
 
+function setFormsEnabled(enabled) {
+  const forms = [byId("mealForm"), byId("bazarForm"), byId("depositForm")];
+  for (const form of forms) {
+    const controls = form.querySelectorAll("input, select, button, textarea");
+    for (const el of controls) el.disabled = !enabled;
+  }
+  byId("authNote").hidden = enabled;
+}
+
 async function loadMembers() {
   const data = await apiGet("/api/members");
   MEMBERS = data.members || [];
@@ -157,13 +166,10 @@ async function loadMemberStats() {
 
 // Refreshes summary cards + member table in one go.
 async function refreshAll() {
-  setDbStatus("Refreshing…", "neutral");
   try {
     await loadSummary();
     await loadMemberStats();
-    setDbStatus("Live", "ok");
   } catch (e) {
-    setDbStatus("Error", "bad");
     throw e;
   }
 }
@@ -231,13 +237,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   setDefaultDates();
   wireForms();
   try {
+    const s = await apiGet("/api/session");
+    if (s.logged_in) {
+      setDbStatus(`Signed in: ${s.username}`, "ok");
+      setFormsEnabled(true);
+    } else {
+      setDbStatus("Viewer mode", "neutral");
+      setFormsEnabled(false);
+    }
     await loadMembers();
     await refreshAll();
   } catch (e) {
     setDbStatus("DB missing?", "bad");
     showToast(
       (e && e.message ? e.message : "Failed to load data.") +
-        " Run `python init_db.py` then restart the server.",
+        " Run `python3 init_db.py` then restart the server.",
       "bad"
     );
   }

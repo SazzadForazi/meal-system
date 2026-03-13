@@ -26,7 +26,10 @@
           <div class="brand">Mess / Meal Management</div>
           <div class="subtle">Track meals, bazar expenses, and deposits in one place.</div>
         </div>
-        <div class="pill" id="dbStatus" aria-live="polite">Connecting…</div>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="{{ url_for('manager') }}">Manager</a>
+          <div class="pill" id="dbStatus" aria-live="polite">Connecting…</div>
+        </div>
       </div>
     </header>
 
@@ -79,6 +82,15 @@
         </section>
 
         <aside class="stack" aria-label="Forms">
+          <div class="card card--notice" id="authNote" hidden>
+            <div class="notice">
+              <div class="notice__title">Manager login required</div>
+              <div class="subtle">
+                Adding/editing records is restricted. Open the <a class="link" href="{{ url_for('login') }}">manager login</a>.
+              </div>
+            </div>
+          </div>
+
           <section class="card">
             <div class="card__head">
               <h2 class="h2">Add Meal</h2>
@@ -160,4 +172,3 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
   </body>
 </html>
-

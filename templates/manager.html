@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manager Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wrap topbar__inner">
+        <div>
+          <div class="brand">Manager Portal</div>
+          <div class="subtle">Signed in as: <span class="mono">{{ username }}</span></div>
+        </div>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="{{ url_for('index') }}">Dashboard</a>
+          <form method="post" action="{{ url_for('logout') }}">
+            <button class="btn btn--danger" type="submit">Logout</button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="grid grid--main">
+        <section class="stack">
+          <section class="card">
+            <div class="card__head">
+              <h2 class="h2">Members</h2>
+              <div class="subtle">Add, rename, or remove members (deleting a member deletes their records).</div>
+            </div>
+            <div class="form form--tight">
+              <div class="row">
+                <input id="newMemberName" placeholder="New member name" />
+                <button class="btn" id="addMemberBtn" type="button">Add Member</button>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table table--wide">
+                <thead>
+                  <tr>
+                    <th style="width: 90px">ID</th>
+                    <th>Name</th>
+                    <th class="num">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="membersBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card__head">
+              <h2 class="h2">Meals</h2>
+              <div class="subtle">Create and edit meal entries (supports decimals like 0.5).</div>
+            </div>
+            <div class="form form--tight">
+              <div class="row">
+                <select id="mealMemberSelect"></select>
+                <input id="mealDateInput" type="date" />
+                <input id="mealCountInput" type="number" min="0" step="0.5" placeholder="Meal count" />
+                <button class="btn" id="addMealBtn" type="button">Add</button>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table table--wide">
+                <thead>
+                  <tr>
+                    <th style="width: 90px">ID</th>
+                    <th style="width: 160px">Date</th>
+                    <th>Member</th>
+                    <th class="num" style="width: 140px">Meal</th>
+                    <th class="num" style="width: 200px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="mealsBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card__head">
+              <h2 class="h2">Bazar / Expenses</h2>
+              <div class="subtle">Create and edit expense entries.</div>
+            </div>
+            <div class="form form--tight">
+              <div class="row">
+                <select id="bazarMemberSelect"></select>
+                <input id="bazarDateInput" type="date" />
+                <input id="bazarAmountInput" type="number" min="0" step="0.01" placeholder="Amount" />
+                <input id="bazarDescInput" type="text" maxlength="500" placeholder="Description (optional)" />
+                <button class="btn" id="addBazarBtn" type="button">Add</button>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table table--wide">
+                <thead>
+                  <tr>
+                    <th style="width: 90px">ID</th>
+                    <th style="width: 160px">Date</th>
+                    <th>Member</th>
+                    <th class="num" style="width: 160px">Amount</th>
+                    <th>Description</th>
+                    <th class="num" style="width: 200px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bazarBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card__head">
+              <h2 class="h2">Deposits</h2>
+              <div class="subtle">Create and edit deposit entries.</div>
+            </div>
+            <div class="form form--tight">
+              <div class="row">
+                <select id="depositMemberSelect"></select>
+                <input id="depositDateInput" type="date" />
+                <input id="depositAmountInput" type="number" min="0" step="0.01" placeholder="Amount" />
+                <button class="btn" id="addDepositBtn" type="button">Add</button>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table table--wide">
+                <thead>
+                  <tr>
+                    <th style="width: 90px">ID</th>
+                    <th style="width: 160px">Date</th>
+                    <th>Member</th>
+                    <th class="num" style="width: 160px">Amount</th>
+                    <th class="num" style="width: 200px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="depositsBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <script src="{{ url_for('static', filename='manager.js') }}"></script>
+  </body>
+</html>
+

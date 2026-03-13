@@ -31,18 +31,31 @@ Creates `mess.db` and inserts sample members (and a small amount of demo data).
 python3 init_db.py --reset
 ```
 
+This also seeds a manager account (change via env vars before running `init_db.py`):
+
+```bash
+export MESS_MANAGER_USER=admin
+export MESS_MANAGER_PASS=admin123
+```
+
 Options:
+
 - `--no-seed`: creates tables without inserting sample data
+- `--no-admin`: creates tables without creating the default manager user
 - `--db /path/to/file.db`: choose a custom DB path
 
 ### 4) Run the server
 
 ```bash
+export FLASK_SECRET_KEY="change-this-to-a-long-random-string"
 python3 app.py
 ```
 
 Open:
+
 - `http://127.0.0.1:5000`
+- `http://127.0.0.1:5000/login` (manager login)
+- `http://127.0.0.1:5000/manager` (manager portal)
 
 ## Project Structure
 
@@ -53,9 +66,12 @@ meal_system/
   mess.db                # SQLite DB (generated after init)
   templates/
     index.html           # Dashboard UI
+    login.html           # Manager login
+    manager.html         # Manager portal (CRUD)
   static/
     style.css            # Styling (responsive)
     script.js            # Frontend logic (fetch + DOM updates)
+    manager.js           # Manager portal logic (CRUD)
 ```
 
 ## How It Works
@@ -127,7 +143,12 @@ Body:
 Body:
 
 ```json
-{ "date": "2026-03-13", "member_id": 3, "amount": 850, "description": "Rice, lentils" }
+{
+  "date": "2026-03-13",
+  "member_id": 3,
+  "amount": 850,
+  "description": "Rice, lentils"
+}
 ```
 
 ### `POST /api/add_deposit`
@@ -142,5 +163,5 @@ Body:
 
 - Dates are stored as ISO strings (`YYYY-MM-DD`).
 - SQLite foreign keys are enabled via `PRAGMA foreign_keys = ON`.
+- All write endpoints (add/edit/delete) require a manager login. The `/` dashboard loads in viewer mode when logged out.
 - If you see “DB missing?” in the UI, run `python3 init_db.py --reset` and restart the server.
-
