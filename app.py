@@ -2,6 +2,8 @@ import os
 import re
 import sqlite3
 from functools import wraps
+from calendar import monthrange
+from datetime import datetime
 from datetime import date
 from typing import Any, Dict, Optional
 
@@ -12,6 +14,7 @@ from werkzeug.security import check_password_hash
 APP_DIR = os.path.dirname(__file__)
 DB_PATH = os.path.join(APP_DIR, "mess.db")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
 def create_app() -> Flask:
@@ -41,6 +44,14 @@ def create_app() -> Flask:
         value = value.strip()
         if not DATE_RE.match(value):
             raise ValueError("date must be in YYYY-MM-DD format")
+        return value
+
+    def parse_month(value: Optional[str]) -> str:
+        if value is None or value.strip() == "":
+            return date.today().strftime("%Y-%m")
+        value = value.strip()
+        if not MONTH_RE.match(value):
+            raise ValueError("month must be in YYYY-MM format")
         return value
 
     def parse_positive_float(value: Any, field: str) -> float:
@@ -81,9 +92,20 @@ def create_app() -> Flask:
         return wrapper
 
     def compute_summary(conn: sqlite3.Connection) -> Dict[str, float]:
-        total_meals = (
-            conn.execute("SELECT COALESCE(SUM(meal_count), 0) AS v FROM meals").fetchone()["v"]
-        )
+        # Meals can be edited multiple times; keep the latest row per (date, member_id)
+        # to prevent accidental double counting.
+        total_meals = conn.execute(
+            """
+            SELECT COALESCE(SUM(m.meal_count), 0) AS v
+            FROM meals m
+            JOIN (
+                SELECT date, member_id, MAX(id) AS max_id
+                FROM meals
+                GROUP BY date, member_id
+            ) x ON x.max_id = m.id
+            WHERE m.meal_count > 0
+            """
+        ).fetchone()["v"]
         total_expenses = (
             conn.execute("SELECT COALESCE(SUM(amount), 0) AS v FROM bazar").fetchone()["v"]
         )
@@ -243,7 +265,17 @@ def create_app() -> Flask:
         meal_rate = summary["meal_rate"]
 
         total_meals = conn.execute(
-            "SELECT COALESCE(SUM(meal_count), 0) AS v FROM meals WHERE member_id = ?",
+            """
+            SELECT COALESCE(SUM(m.meal_count), 0) AS v
+            FROM meals m
+            JOIN (
+                SELECT date, member_id, MAX(id) AS max_id
+                FROM meals
+                WHERE member_id = ?
+                GROUP BY date, member_id
+            ) x ON x.max_id = m.id
+            WHERE m.meal_count > 0
+            """,
             (member_id,),
         ).fetchone()["v"]
         total_deposit = conn.execute(
@@ -267,6 +299,131 @@ def create_app() -> Flask:
             }
         )
 
+    @app.get("/api/meals_matrix")
+    def api_meals_matrix():
+        # Public read endpoint used by the home page month-wise table.
+        try:
+            month = parse_month(request.args.get("month"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        conn = get_db()
+
+        # Active members: those who have meal entries in the selected month.
+        active = conn.execute(
+            """
+            SELECT DISTINCT members.id, members.name
+            FROM meals
+            JOIN members ON members.id = meals.member_id
+            WHERE meals.date LIKE ?
+            ORDER BY members.name
+            """,
+            (f"{month}-%",),
+        ).fetchall()
+
+        if active:
+            members = [{"id": r["id"], "name": r["name"]} for r in active]
+        else:
+            all_rows = conn.execute("SELECT id, name FROM members ORDER BY name").fetchall()
+            members = [{"id": r["id"], "name": r["name"]} for r in all_rows]
+
+        rows = conn.execute(
+            """
+            SELECT m.date, m.member_id, m.meal_count
+            FROM meals m
+            JOIN (
+                SELECT date, member_id, MAX(id) AS max_id
+                FROM meals
+                WHERE date LIKE ?
+                GROUP BY date, member_id
+            ) x ON x.max_id = m.id
+            WHERE m.meal_count > 0
+            ORDER BY m.date ASC
+            """,
+            (f"{month}-%",),
+        ).fetchall()
+
+        entries = [
+            {"date": r["date"], "member_id": r["member_id"], "meal_count": float(r["meal_count"])}
+            for r in rows
+        ]
+
+        return jsonify({"month": month, "members": members, "entries": entries})
+
+    @app.post("/api/meals_matrix")
+    @login_required
+    def api_meals_matrix_save():
+        data = request.get_json(silent=True) or {}
+        try:
+            month = parse_month(data.get("month"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        entries = data.get("entries")
+        if not isinstance(entries, list):
+            return jsonify({"error": "entries must be a list"}), 400
+
+        conn = get_db()
+        try:
+            y, m = month.split("-")
+            year = int(y)
+            month_num = int(m)
+            days_in_month = monthrange(year, month_num)[1]
+            month_start = f"{month}-01"
+            month_end = f"{month}-{days_in_month:02d}"
+        except Exception:
+            return jsonify({"error": "Invalid month"}), 400
+
+        # Validate first, then apply in a transaction.
+        normalized = []
+        for item in entries:
+            if not isinstance(item, dict):
+                return jsonify({"error": "Each entry must be an object"}), 400
+            try:
+                member_id = int(item.get("member_id"))
+                entry_date = parse_iso_date(item.get("date"))
+            except (TypeError, ValueError) as exc:
+                return jsonify({"error": str(exc)}), 400
+
+            if entry_date < month_start or entry_date > month_end:
+                return jsonify({"error": f"date {entry_date} is outside selected month"}), 400
+
+            if not member_exists(conn, member_id):
+                return jsonify({"error": f"Member not found: {member_id}"}), 404
+
+            meal_raw = item.get("meal_count", None)
+            if meal_raw is None or str(meal_raw).strip() == "":
+                meal_count = None  # delete
+            else:
+                try:
+                    meal_count = parse_positive_float(meal_raw, "meal_count")
+                except ValueError as exc:
+                    return jsonify({"error": str(exc)}), 400
+                if float(meal_count) == 0.0:
+                    meal_count = None  # treat 0 as blank to avoid storing clutter
+
+            normalized.append((entry_date, member_id, meal_count))
+
+        try:
+            conn.execute("BEGIN")
+            for entry_date, member_id, meal_count in normalized:
+                # Keep one value per (date, member). This works even if old duplicates exist.
+                conn.execute(
+                    "DELETE FROM meals WHERE date = ? AND member_id = ?",
+                    (entry_date, member_id),
+                )
+                if meal_count is not None:
+                    conn.execute(
+                        "INSERT INTO meals(date, member_id, meal_count) VALUES (?, ?, ?)",
+                        (entry_date, member_id, float(meal_count)),
+                    )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
+        return jsonify({"ok": True})
+
     @app.post("/api/add_meal")
     @login_required
     def api_add_meal():
@@ -282,10 +439,13 @@ def create_app() -> Flask:
         if not member_exists(conn, member_id):
             return jsonify({"error": "Member not found"}), 404
 
-        conn.execute(
-            "INSERT INTO meals(date, member_id, meal_count) VALUES (?, ?, ?)",
-            (meal_date, member_id, meal_count),
-        )
+        # Upsert semantics for (date, member): replace any existing value for that day.
+        conn.execute("DELETE FROM meals WHERE date = ? AND member_id = ?", (meal_date, member_id))
+        if meal_count > 0:
+            conn.execute(
+                "INSERT INTO meals(date, member_id, meal_count) VALUES (?, ?, ?)",
+                (meal_date, member_id, meal_count),
+            )
         conn.commit()
         return jsonify({"ok": True})
 
@@ -297,10 +457,16 @@ def create_app() -> Flask:
         conn = get_db()
         rows = conn.execute(
             """
-            SELECT meals.id, meals.date, meals.member_id, meals.meal_count, members.name AS member_name
-            FROM meals
-            JOIN members ON members.id = meals.member_id
-            ORDER BY meals.date DESC, meals.id DESC
+            SELECT m.id, m.date, m.member_id, m.meal_count, members.name AS member_name
+            FROM meals m
+            JOIN (
+                SELECT date, member_id, MAX(id) AS max_id
+                FROM meals
+                GROUP BY date, member_id
+            ) x ON x.max_id = m.id
+            JOIN members ON members.id = m.member_id
+            WHERE m.meal_count > 0
+            ORDER BY m.date DESC, m.id DESC
             LIMIT ? OFFSET ?
             """,
             (limit, offset),

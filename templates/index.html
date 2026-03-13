@@ -64,30 +64,60 @@
       </section>
 
       <section class="grid grid--main" aria-label="Details">
-        <section class="card card--table">
-          <div class="card__head">
-            <h2 class="h2">Member Summary</h2>
-            <div class="subtle">Automatically recalculated after each submission</div>
-          </div>
+        <section class="stack">
+          <section class="card card--table">
+            <div class="card__head">
+              <h2 class="h2">Member Summary</h2>
+              <div class="subtle">Automatically recalculated after each submission</div>
+            </div>
 
-          <div class="tableWrap" role="region" aria-label="Member summary table" tabindex="0">
-            <table class="table" id="memberTable">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th class="num">Meals</th>
-                  <th class="num">Deposit</th>
-                  <th class="num">Cost</th>
-                  <th class="num">Balance</th>
-                </tr>
-              </thead>
-              <tbody id="memberTbody">
-                <tr>
-                  <td colspan="5" class="subtle">Loading…</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            <div class="tableWrap" role="region" aria-label="Member summary table" tabindex="0">
+              <table class="table" id="memberTable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th class="num">Meals</th>
+                    <th class="num">Deposit</th>
+                    <th class="num">Cost</th>
+                    <th class="num">Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="memberTbody">
+                  <tr>
+                    <td colspan="5" class="subtle">Loading…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Add meal month-wise">
+            <div class="card__head">
+              <h2 class="h2">Add Meal</h2>
+              <div class="subtle">
+                Month-wise daily meal sheet. Managers can edit; others can view.
+              </div>
+            </div>
+
+            <div class="form form--tight">
+              <div class="row">
+                <label class="field" style="min-width: 220px">
+                  <span>Month</span>
+                  <input id="mealMonth" type="month" />
+                </label>
+                <button class="btn btn--ghost" id="mealMonthLoad" type="button">Load</button>
+                <button class="btn" id="mealMonthSave" type="button">Save Changes</button>
+              </div>
+              <div class="subtle" id="mealMonthHint"></div>
+            </div>
+
+            <div class="matrixWrap" role="region" aria-label="Month meal matrix" tabindex="0">
+              <table class="matrixTable" id="mealMatrixTable" aria-label="Meal matrix">
+                <thead id="mealMatrixThead"></thead>
+                <tbody id="mealMatrixTbody"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
         <aside class="stack" aria-label="Forms">
@@ -99,37 +129,6 @@
               </div>
             </div>
           </div>
-
-          <section class="card">
-            <div class="card__head">
-              <h2 class="h2">Add Meal</h2>
-              <div class="subtle">Spreadsheet-style entry (supports decimals like 0.5 or 2.5)</div>
-            </div>
-
-            <form id="mealForm" class="form">
-              <div class="sheet" role="region" aria-label="Meal entry sheet" tabindex="0">
-                <table class="sheetTable" aria-label="Meal entry table">
-                  <thead>
-                    <tr>
-                      <th class="num" style="width: 60px">#</th>
-                      <th>Member</th>
-                      <th style="width: 160px">Date</th>
-                      <th class="num" style="width: 160px">Meal</th>
-                      <th class="num" style="width: 140px">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="mealSheetBody"></tbody>
-                </table>
-              </div>
-              <div class="subtle">
-                Tip: “Add Row” creates one row per member for the same date. You can paste multiple lines into the Meal cell. For full rows, paste tab-separated: <span class="mono">Member[TAB]YYYY-MM-DD[TAB]Meal</span>.
-              </div>
-              <div class="sheetActions">
-                <button class="btn btn--ghost" id="mealAddRowBtn" type="button">Add Row</button>
-                <button class="btn" type="submit">Submit All</button>
-              </div>
-            </form>
-          </section>
 
           <section class="card">
             <div class="card__head">
