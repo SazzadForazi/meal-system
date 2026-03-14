@@ -1,0 +1,46 @@
+services:
+  db:
+    # Podman often requires fully-qualified image names unless registries are configured.
+    image: docker.io/library/postgres:16
+    environment:
+      POSTGRES_USER: mess
+      POSTGRES_PASSWORD: mess
+      POSTGRES_DB: mess_multi
+    ports:
+      # Use 5433 on host to avoid clashing with an existing local Postgres on 5432.
+      - "5433:5432"
+    volumes:
+      - mess_pg:/var/lib/postgresql/data
+      # Auto-initialize schema + seed on first boot.
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Host networking avoids Podman DNS/CNI issues with service-name resolution ("db").
+    # Works on Linux; if you run Docker Desktop (Mac/Windows), prefer bridged networking instead.
+    network_mode: "host"
+    environment:
+      PORT: "4000"
+      DATABASE_URL: postgres://mess:mess@127.0.0.1:5433/mess_multi
+      JWT_SECRET: change-me-to-a-long-random-string
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:5173
+      SUPER_ADMIN_NAME: "Super Admin"
+      SUPER_ADMIN_EMAIL: "super@admin.com"
+      SUPER_ADMIN_PASSWORD: "superadmin1223"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mess_pg:
